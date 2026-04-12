@@ -339,7 +339,7 @@
                 // WhatsApp Logic
                 if (memberData.phone) {
                     const cleanPhone = memberData.phone.replace(/\D/g, '');
-                    const waLink = `https://wa.me/${cleanPhone}?text=*Muscles Lab Receipt*%0AName: ${memberData.name}%0AAmount: RS ${amount}`;
+                    const waLink = `https://wa.me/${cleanPhone}?text=*microtasker*%0AName: ${memberData.name}%0AAmount: RS ${amount}`;
                     window.open(waLink, '_blank');
                 }
             }
