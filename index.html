@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microtasker | Gym Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0e14;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .sidebar-active {
+            background: #1a1f26;
+            border-left: 4px solid #a3e635;
+            color: white !important;
+        }
+
+        .filter-btn.active {
+            background: #a3e635;
+            color: #000;
+        }
+
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Hide arrows for Chrome, Safari, Edge, and Opera */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+
+        }
+
+        /* Mobile Menu Transitions */
+        #mobile-sidebar {
+            transition: transform 0.3s ease-in-out;
+            transform: translateX(-100%);
+        }
+
+        #mobile-sidebar.open {
+            transform: translateX(0);
+        }
+
+        /* Hide arrows for Firefox */
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+
+<body class="text-gray-300 flex h-screen overflow-hidden">
+    <div id="deleteConfirmModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
+    <div class="glass-card w-full max-w-xs p-8 rounded-3xl text-center border border-rose-500/20">
+        <div class="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4z"/>
+            </svg>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Are you sure?</h3>
+        <p class="text-gray-500 text-sm mb-6">This member's data will be permanently removed.</p>
+        <div class="flex gap-3">
+            <button onclick="closeDeleteModal()" class="flex-1 p-3 bg-gray-800 text-white rounded-xl font-medium">Cancel</button>
+            <button id="btnFinalDelete" class="flex-1 p-3 bg-rose-500 text-white rounded-xl font-bold">Delete</button>
+        </div>
+    </div>
+</div>
+    <div
+        class="md:hidden flex items-center justify-between p-4 border-b border-gray-800 bg-[#0b0e14] w-full fixed top-0 z-40">
+        <div class="flex items-center space-x-3">
+            <div class="bg-lime-400 p-1.5 rounded text-black font-bold">m</div>
+            <span id="mobileBizNameDisplay" class="text-white font-bold text-sm uppercase">Gym Manager</span>
+        </div>
+        <button onclick="toggleMobileMenu()" class="text-gray-400 p-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+        </button>
+    </div>
+
+    <div id="mobile-sidebar-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] hidden transition-opacity"
+        onclick="toggleMobileMenu()">
+        <aside id="mobile-sidebar" class="w-72 h-full bg-[#0d1117] p-6 flex flex-col justify-between"
+            onclick="event.stopPropagation()">
+            <div>
+                <div class="flex items-center justify-between mb-10">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-lime-400 p-2 rounded-lg text-black font-bold text-xl">m</div>
+                        <h1 class="text-white font-bold leading-none">Menu</h1>
+                    </div>
+                    <button onclick="toggleMobileMenu()" class="text-gray-500 text-2xl">&times;</button>
+                </div>
+                <nav class="space-y-3">
+                    <button onclick="mobileSwitchTab('dashboard')"
+                        class="w-full flex items-center space-x-4 p-4 rounded-xl hover:bg-white/5 text-gray-400 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                            viewBox="0 0 16 16">
+                            <path
+                                d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                        </svg>
+                        <span class="font-medium text-lg">Dashboard</span>
+                    </button>
+                    <button onclick="mobileSwitchTab('members')"
+                        class="w-full flex items-center space-x-4 p-4 rounded-xl hover:bg-white/5 text-gray-400 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                            viewBox="0 0 16 16">
+                            <path
+                                d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5" />
+                        </svg>
+                        <span class="font-medium text-lg">Members</span>
+                    </button>
+                    <button onclick="mobileSwitchTab('settings')"
+                        class="w-full flex items-center space-x-4 p-4 rounded-xl hover:bg-white/5 text-gray-400 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
+  <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/>
+  <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z"/>
+</svg>
+                        <span class="font-medium text-lg">Settings</span>
+                    </button>
+                </nav>
+            </div>
+            <button onclick="logout()"
+                class="w-full p-4 bg-rose-500/10 text-rose-500 rounded-2xl font-bold flex items-center justify-center space-x-2">
+                <span>Logout</span>
+            </button>
+        </aside>
+    </div>
+    <div id="login-overlay"
+        class="fixed inset-0 bg-[#0a0a0a] z-[100] flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
+        <div class="w-full max-w-sm">
+            <h1 class="text-5xl font-black text-white mb-2 tracking-tighter uppercase">Gym Manager</h1>
+            <p class="text-gray-500 mb-10 text-sm italic">Microtasker Business Solutions</p>
+
+            <div class="space-y-4">
+                <div class="text-left">
+                    <label class="text-[10px] text-gray-500 uppercase font-bold mb-2 ml-1">Owner ID</label>
+                    <input type="text" id="ownerIdInput"
+                        class="w-full bg-white/5 border border-gray-800 rounded-2xl p-4 text-white focus:ring-1 focus:ring-lime-400 outline-none transition-all"
+                        placeholder="Enter Shop ID">
+                </div>
+
+                <div class="text-left">
+                    <label class="text-[10px] text-gray-500 uppercase font-bold mb-2 ml-1">Password</label>
+                    <div class="relative">
+                        <input type="password" id="ownerPasswordInput"
+                            class="w-full bg-white/5 border border-gray-800 rounded-2xl p-4 text-white focus:ring-1 focus:ring-lime-400 outline-none transition-all"
+                            placeholder="••••••••">
+
+                        <button onclick="togglePassword()" type="button"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition">
+                            <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button onclick="manualLogin()"
+                    class="w-full bg-lime-400 text-black font-black py-4 rounded-2xl hover:bg-lime-500 transition-all shadow-lg shadow-lime-400/10 uppercase tracking-tight">
+                    Access Dashboard
+                </button>
+            </div>
+
+            <p class="mt-8 text-[10px] text-gray-600 uppercase font-bold tracking-widest">Powered by Microtasker
+                Solutions</p>
+        </div>
+    </div>
+    <aside class="w-64 border-r border-gray-800 flex flex-col justify-between p-6 hidden md:flex">
+        <div>
+            <div class="flex items-center space-x-3 mb-10">
+                <div class="bg-lime-400 p-2 rounded-lg text-black font-bold text-xl">m</div>
+                <div>
+                    <h1 id="sidebarBizName" class="text-white font-bold leading-none">Microtasker</h1>
+                    <p class="text-xs text-gray-500">Gym Management</p>
+                </div>
+            </div>
+            <nav class="space-y-2">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard"
+                    class="w-full flex items-center space-x-3 p-3 rounded-lg sidebar-active text-gray-400 transition"><svg
+                        xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-house-door-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5" />
+                    </svg><span>Dashboard</span></button>
+                <button onclick="switchTab('members')" id="nav-members"
+                    class="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition"><svg
+                        xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-people-fill" viewBox="0 0 16 16">
+                        <path
+                            d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5" />
+                    </svg> <span>Members</span></button>
+                <button onclick="switchTab('settings')" id="nav-settings"
+                    class="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition"><svg
+                        xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear"
+                        viewBox="0 0 16 16">
+                        <path
+                            d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0" />
+                        <path
+                            d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z" />
+                    </svg><span>Settings</span></button>
+            </nav>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto p-8 pt-24 md:pt-8">
+
+        <div id="view-dashboard" class="tab-content">
+            <header class="mb-8">
+                <h2 id="displayBizName" class="text-3xl font-bold text-white uppercase tracking-tight">Muscles Lab</h2>
+                <p class="text-gray-500">Performance Tracking</p>
+            </header>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                <div class="glass-card p-6 rounded-2xl">
+                    <p class="text-xs text-gray-500 mb-1">Total Members</p>
+                    <h3 id="stat-total" class="text-3xl font-bold text-white">0</h3>
+                </div>
+                <div class="glass-card p-6 rounded-2xl">
+                    <p class="text-xs text-gray-500 mb-1">Paid</p>
+                    <h3 id="stat-paid" class="text-3xl font-bold text-lime-400">0</h3>
+                </div>
+                <div class="glass-card p-6 rounded-2xl">
+                    <p class="text-xs text-gray-500 mb-1">Pending</p>
+                    <h3 id="stat-pending" class="text-3xl font-bold text-orange-400">0</h3>
+                </div>
+                <div class="glass-card p-6 rounded-2xl">
+                    <p class="text-xs text-gray-500 mb-1">Revenue</p>
+                    <h3 id="stat-revenue" class="text-3xl font-bold text-white">RS 0</h3>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-members" class="tab-content hidden">
+            <header class="mb-8">
+                <h2 class="text-3xl font-bold text-white">Members Directory</h2>
+                <p class="text-gray-500">Manage your athletes and payments</p>
+            </header>
+        </div>
+
+        <div id="view-settings" class="tab-content hidden w-full">
+            <header class="mb-10">
+                <h2 class="text-4xl font-extrabold text-white tracking-tight">SYSTEM SETTINGS</h2>
+                <p class="text-gray-500 mt-2">Configure your business rules and notification preferences</p>
+            </header>
+
+            <div class="w-full space-y-8">
+
+                <div class="space-y-6">
+                    <h3 class="text-sm font-semibold text-lime-400 uppercase tracking-widest">Business Profile</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="flex flex-col">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold mb-2 ml-1">Business Name</label>
+                            <input type="text" id="setBizName"
+                                class="bg-white/5 border-none rounded-2xl p-4 text-white focus:ring-2 focus:ring-lime-400 outline-none transition-all shadow-inner"
+                                placeholder="e.g. Muscles Lab">
+                        </div>
+                        <div class="flex flex-col">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold mb-2 ml-1">Monthly Fee
+                                (RS)</label>
+                            <input type="number" id="setBaseFee"
+                                class="bg-white/5 border-none rounded-2xl p-4 text-white focus:ring-2 focus:ring-lime-400 outline-none transition-all shadow-inner"
+                                placeholder="500">
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-gray-800/50">
+
+                <div class="space-y-4">
+                    <h3 class="text-sm font-semibold text-lime-400 uppercase tracking-widest">Notification Preferences
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex items-center justify-between p-5 bg-white/5 rounded-2xl">
+                            <div>
+                                <p class="text-white font-medium">WhatsApp Automation</p>
+                                <p class="text-xs text-gray-500">Send instant receipts via WhatsApp</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="setEnableWA" class="sr-only peer">
+                                <div
+                                    class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-lime-400">
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="flex items-center justify-between p-5 bg-white/5 rounded-2xl">
+                            <div>
+                                <p class="text-white font-medium">Email Receipts</p>
+                                <p class="text-xs text-gray-500">Send professional EmailJS receipts</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="setEnableEmail" class="sr-only peer">
+                                <div
+                                    class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-lime-400">
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-6">
+                    <button id="btnSaveSettings"
+                        class="w-full md:w-64 p-4 bg-lime-400 text-black font-black uppercase tracking-widest rounded-2xl hover:bg-lime-500 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-lime-400/10">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="table-container">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div class="relative flex-1 max-w-md">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500"><svg
+                            xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                            class="bi bi-search" viewBox="0 0 16 16">
+                            <path
+                                d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                        </svg></span>
+                    <input type="text" id="memberSearch" placeholder="Search by name..."
+                        class="w-full bg-gray-900 border border-gray-800 rounded-xl py-2.5 pl-10 pr-4 text-white focus:border-lime-400 outline-none transition">
+                </div>
+                <div id="filterGroup" class="flex bg-gray-900/50 p-1 rounded-xl border border-gray-800">
+                    <button onclick="setFilter('all')"
+                        class="filter-btn active px-4 py-1.5 rounded-lg text-xs font-medium transition">All</button>
+                    <button onclick="setFilter('Paid')"
+                        class="filter-btn px-4 py-1.5 rounded-lg text-xs font-medium transition">Paid</button>
+                    <button onclick="setFilter('Pending')"
+                        class="filter-btn px-4 py-1.5 rounded-lg text-xs font-medium transition">Pending</button>
+
+                </div>
+            </div>
+
+            <section class="glass-card rounded-2xl overflow-hidden p-6">
+                <div class="overflow-x-auto no-scrollbar">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-gray-500 border-b border-gray-800 text-[10px] uppercase tracking-wider">
+                                <th class="pb-4">Member Info</th>
+                                <th class="pb-4">Status</th>
+                                <th class="pb-4">Current Payment</th>
+                                <th class="pb-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="memberTableBody" class="divide-y divide-gray-800"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <button onclick="openAddModal()" id="btnOpenAddMember"
+            class="fixed bottom-8 right-8 w-14 h-14 bg-lime-400 text-black rounded-full shadow-lg text-3xl flex items-center justify-center hover:scale-110 active:scale-95 transition z-10"><svg
+                xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg"
+                viewBox="0 0 16 16">
+                <path fill-rule="evenodd"
+                    d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2" />
+            </svg></button>
+    </main>
+
+    <div id="addMemberModal"
+        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md p-8 rounded-3xl space-y-6">
+            <h3 class="text-2xl font-bold text-white">Add New Member</h3>
+            <div class="space-y-4">
+                <input type="text" id="newMemberName" placeholder="Full Name"
+                    class="w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-white outline-none focus:border-lime-400">
+                <input type="text" id="newMemberPhone" placeholder="WhatsApp (e.g. 92300...)"
+                    class="w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-white outline-none focus:border-lime-400">
+                <input type="email" id="newMemberEmail" placeholder="Email Address"
+                    class="w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-white outline-none focus:border-lime-400">
+                <div class="relative">
+                    <span class="absolute left-3 top-3 text-lime-400 font-bold">RS</span>
+                    <input type="number" id="newMemberFee" placeholder="First Fee (Optional)"
+                        class="w-full bg-gray-900 border border-gray-800 rounded-xl p-3 pl-10 text-white outline-none focus:border-lime-400">
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeAddModal()" class="flex-1 p-4 bg-gray-800 text-white rounded-xl">Cancel</button>
+                <button id="btnSaveMember" class="flex-1 p-4 bg-lime-400 text-black font-bold rounded-xl">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="paymentModal"
+        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-sm p-8 rounded-3xl text-center space-y-6">
+            <div>
+                <h3 id="modalMemberName" class="text-2xl font-bold text-white">---</h3>
+                <p class="text-gray-500">Collect Monthly Payment</p>
+            </div>
+            <input type="number" id="paymentAmount"
+                class="w-full bg-gray-900 border border-gray-800 rounded-xl p-4 text-center text-2xl text-lime-400 font-bold outline-none"
+                placeholder="RS 0">
+            <div class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 p-4 bg-gray-800 text-white rounded-xl">Cancel</button>
+                <button id="btnConfirmPayment"
+                    class="flex-1 p-4 bg-lime-400 text-black font-bold rounded-xl">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            emailjs.init("k7gaGIHJu8GNpmH35"); // Replace with your actual Public Key from EmailJS dashboard
+        })();
+    </script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+        getFirestore, collection, onSnapshot, query, orderBy, doc, 
+        updateDoc, addDoc, deleteDoc, setDoc, getDoc, increment, where 
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // --- FIREBASE CONFIGURATION ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBuH51aVFftljJBQ8pPf7wjNU_G9rSl1iI",
+        authDomain: "gym-mangment-437b0.firebaseapp.com",
+        projectId: "gym-mangment-437b0",
+        storageBucket: "gym-mangment-437b0.firebasestorage.app",
+        messagingSenderId: "296287112867",
+        appId: "1:296287112867:web:88e4e125d518fc43a4b916"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // --- APP STATE ---
+    let currentUid = null;
+    let allMembers = [];
+    let currentFilter = 'all';
+    let searchQuery = '';
+    let currentMemberId = null; 
+    let activeTab = 'dashboard';
+    let settings = { bizName: "My Gym", baseFee: 500, waEnabled: true, emailEnabled: true };
+
+    // --- TOAST NOTIFICATION SYSTEM ---
+    const showToast = (message, type = 'info') => {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.style.cssText = 'position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px;';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        const colors = {
+            success: '#10b981',
+            error: '#ef4444',
+            warning: '#f59e0b',
+            info: '#3b82f6'
+        };
+
+        toast.style.cssText = `
+            background: #1e293b; color: white; padding: 12px 20px; border-radius: 8px;
+            border-left: 4px solid ${colors[type]}; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-size: 14px; font-family: sans-serif; min-width: 250px;
+            animation: slideIn 0.3s ease-out; transition: opacity 0.3s;
+        `;
+        toast.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()" style="background:none; border:none; color:#64748b; cursor:pointer; margin-left:10px;">✕</button>
+        </div>`;
+
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    };
+
+    // Keyframe for animation
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = `@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`;
+    document.head.appendChild(styleSheet);
+
+    // --- CONNECTIVITY LISTENERS ---
+    window.addEventListener('online', () => showToast("Internet connected. Syncing data...", "success"));
+    window.addEventListener('offline', () => showToast("Internet disconnected. Actions will sync when connected.", "warning"));
+
+    // --- 1. AUTHENTICATION (OWNER ID SYSTEM) ---
+    window.manualLogin = async () => {
+        const ownerId = document.getElementById('ownerIdInput').value.trim();
+        const password = document.getElementById('ownerPasswordInput').value.trim();
+
+        if (!ownerId || !password) return showToast("Please enter Shop ID and Password.", "warning");
+
+        try {
+            const ownerRef = doc(db, "owners", ownerId);
+            const snap = await getDoc(ownerRef);
+
+            if (snap.exists()) {
+                const ownerData = snap.data();
+                if (ownerData.Password === password) {
+                    if (ownerData.isPaid === false) return showToast("Account suspended. Contact support.", "error");
+                    localStorage.setItem('gymOwnerId', ownerId);
+                    checkSession();
+                    showToast("Logged in successfully!", "success");
+                } else {
+                    showToast("Incorrect Password.", "error");
+                }
+            } else {
+                showToast("Shop ID not found.", "error");
+            }
+        } catch (e) {
+            showToast("Connection error. Please try again.", "error");
+        }
+    };
+
+    window.togglePassword = () => {
+        const passInput = document.getElementById('ownerPasswordInput');
+        passInput.type = passInput.type === 'password' ? 'text' : 'password';
+    };
+
+    window.logout = () => {
+        localStorage.removeItem('gymOwnerId');
+        location.reload(); 
+    };
+
+    const checkSession = () => {
+        const savedId = localStorage.getItem('gymOwnerId');
+        if (savedId) {
+            currentUid = savedId;
+            document.getElementById('login-overlay').classList.add('hidden');
+            initSettings();
+            startMemberListener();
+        } else {
+            currentUid = null;
+            document.getElementById('login-overlay').classList.remove('hidden');
+        }
+    };
+
+    // --- 2. GLOBAL UI NAVIGATION ---
+    window.setFilter = (filter) => {
+        currentFilter = filter;
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.innerText.toLowerCase() === filter.toLowerCase() || (filter === 'all' && btn.innerText === 'All'));
+        });
+        window.renderTable();
+    };
+
+    window.switchTab = (tab) => {
+        activeTab = tab;
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        const targetView = document.getElementById(`view-${tab}`);
+        if(targetView) targetView.classList.remove('hidden');
+        
+        const tableContainer = document.getElementById('table-container');
+        if(tableContainer) tableContainer.classList.toggle('hidden', tab === 'settings');
+        
+        document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('sidebar-active'));
+        const navBtn = document.getElementById(`nav-${tab}`);
+        if(navBtn) navBtn.classList.add('sidebar-active');
+        
+        window.renderTable();
+    };
+
+    // --- 3. MODALS ---
+    window.openAddModal = () => {
+        const modal = document.getElementById('addMemberModal');
+        document.getElementById('newMemberFee').value = settings.baseFee || 500;
+        if (modal) modal.classList.remove('hidden');
+    };
+
+    window.closeAddModal = () => {
+        const modal = document.getElementById('addMemberModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            ['newMemberName', 'newMemberPhone', 'newMemberEmail', 'newMemberFee'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.value = '';
+            });
+        }
+    };
+
+    window.openPaymentModal = (id, name, currentFee) => {
+        currentMemberId = id;
+        const remaining = settings.baseFee - (currentFee || 0);
+        document.getElementById('modalMemberName').innerText = name;
+        document.getElementById('paymentAmount').value = remaining > 0 ? remaining : 0;
+        document.getElementById('paymentModal').classList.remove('hidden');
+    };
+
+    window.closeModal = () => {
+        document.getElementById('paymentModal').classList.add('hidden');
+        document.getElementById('paymentAmount').value = '';
+        currentMemberId = null;
+    };
+
+    // --- 4. MEMBER ACTIONS ---
+    document.getElementById('btnSaveMember').addEventListener('click', async () => {
+        const name = document.getElementById('newMemberName').value.trim();
+        const phone = document.getElementById('newMemberPhone').value.trim();
+        const email = document.getElementById('newMemberEmail').value.trim();
+        const firstFee = Number(document.getElementById('newMemberFee').value) || 0;
+
+        if (!name || !currentUid) return showToast("Please enter a name.", "warning");
+
+        try {
+            const now = new Date().toISOString();
+            const memberID = "ML-" + Math.floor(1000 + Math.random() * 9000);
+
+            await addDoc(collection(db, "members"), {
+                name, phone, email,
+                ownerid: currentUid,
+                monthly_fee: firstFee,
+                join_date: now,
+                last_payment_date: firstFee > 0 ? now : null,
+                member_id: memberID
+            });
+
+            if (settings.waEnabled && phone) {
+                const waMsg = `*Welcome to ${settings.bizName}!*\n\nHello ${name},\nMember ID: ${memberID}\nFee Paid: RS ${firstFee}\n\nThank you!`;
+                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(waMsg)}`, '_blank');
+            }
+
+            if (settings.emailEnabled && email && navigator.onLine) {
+                emailjs.send("service_z4ox0k6", "template_536nwme", {
+                    name: name,
+                    email: email, 
+                    message: `Registration successful. Fee: RS ${firstFee}`,
+                    firstFee: firstFee,
+                    biz_name: settings.bizName,
+                    time: new Date().toLocaleString()
+                });
+            }
+
+            window.closeAddModal();
+            showToast("Member added successfully!", "success");
+        } catch (e) { 
+            showToast("Error saving member.", "error");
+        }
+    });
+
+    document.getElementById('btnConfirmPayment').addEventListener('click', async () => {
+        const amount = Number(document.getElementById('paymentAmount').value);
+        if (!currentMemberId || amount <= 0) return showToast("Enter valid amount.", "warning");
+
+        try {
+            const memberRef = doc(db, "members", currentMemberId);
+            const snap = await getDoc(memberRef);
+            if (!snap.exists()) return showToast("Member not found.", "error");
+            
+            const data = snap.data();
+            const now = new Date();
+            const lastPay = data.last_payment_date ? new Date(data.last_payment_date) : null;
+            const isNewMonth = !lastPay || lastPay.getMonth() !== now.getMonth() || lastPay.getFullYear() !== now.getFullYear();
+
+            const currentPaid = isNewMonth ? 0 : Number(data.monthly_fee || 0);
+            const totalThisMonth = currentPaid + amount;
+
+            if (totalThisMonth > settings.baseFee) {
+                return showToast(`Limit exceeded! Max remaining: RS ${settings.baseFee - currentPaid}`, "error");
+            }
+
+            await updateDoc(memberRef, {
+                monthly_fee: isNewMonth ? amount : increment(amount),
+                last_payment_date: now.toISOString()
+            });
+
+            if (settings.waEnabled && data.phone) {
+                const msg = `*Receipt from ${settings.bizName}*\n\nMember: ${data.name}\nAmount: RS ${amount}\nTotal: RS ${totalThisMonth}`;
+                window.open(`https://wa.me/${data.phone}?text=${encodeURIComponent(msg)}`, '_blank');
+            }
+
+            if (settings.emailEnabled && data.email && navigator.onLine) {
+                emailjs.send("service_z4ox0k6", "template_7tq1sqc", {
+                    name: data.name,
+                    email: data.email, 
+                    message: `Payment RS ${amount} received.`,
+                    amount: amount,
+                    biz_name: settings.bizName,
+                    time: now.toLocaleString()
+                });
+            }
+
+            window.closeModal();
+            showToast("Payment Recorded!", "success");
+        } catch (e) { 
+            showToast("Error updating payment.", "error");
+        }
+    });
+
+   // --- CUSTOM DELETE SYSTEM ---
+let memberToDeleteId = null;
+
+window.deleteMember = (id) => {
+    memberToDeleteId = id;
+    document.getElementById('deleteConfirmModal').classList.remove('hidden');
+};
+
+window.closeDeleteModal = () => {
+    document.getElementById('deleteConfirmModal').classList.add('hidden');
+    memberToDeleteId = null;
+};
+
+// Handle the actual deletion
+document.getElementById('btnFinalDelete').addEventListener('click', async () => {
+    if (!memberToDeleteId) return;
+
+    try {
+        const id = memberToDeleteId;
+        closeDeleteModal(); // Hide modal immediately for better UX
+        
+        await deleteDoc(doc(db, "members", id)); 
+        showToast("Member removed from system.", "info");
+    } catch (e) {
+        console.error(e);
+        showToast("Error: Delete failed.", "error");
+    }
+});
+
+    // --- 5. DATA FETCHING & RENDERING ---
+    function startMemberListener() {
+        const q = query(collection(db, "members"), where("ownerid", "==", currentUid), orderBy("join_date", "desc"));
+        onSnapshot(q, (snapshot) => {
+            allMembers = [];
+            let rev = 0, paid = 0, pend = 0;
+            const now = new Date();
+
+            snapshot.forEach((snapDoc) => {
+                const data = snapDoc.data();
+                let fee = Number(data.monthly_fee || 0);
+                const lp = data.last_payment_date ? new Date(data.last_payment_date) : null;
+                
+                if (lp && (lp.getMonth() !== now.getMonth() || lp.getFullYear() !== now.getFullYear())) fee = 0;
+
+                const status = (fee >= settings.baseFee) ? "Paid" : (fee > 0 ? "Pending" : "Unpaid");
+                if(status === "Paid") paid++; else if(status === "Pending") pend++;
+                rev += fee;
+                allMembers.push({ id: snapDoc.id, ...data, calculatedStatus: status, fee });
+            });
+
+            document.getElementById('stat-total').innerText = snapshot.size;
+            document.getElementById('stat-paid').innerText = paid;
+            document.getElementById('stat-pending').innerText = pend;
+            document.getElementById('stat-revenue').innerText = "RS " + rev;
+            window.renderTable();
+        }, (error) => {
+            if (!navigator.onLine) showToast("Working offline. Data will refresh when online.", "warning");
+        });
+    }
+
+    window.renderTable = () => {
+        const tbody = document.getElementById('memberTableBody');
+        if(!tbody) return;
+        tbody.innerHTML = "";
+        
+        allMembers.filter(m => {
+            const mf = currentFilter === 'all' || m.calculatedStatus.toLowerCase() === currentFilter.toLowerCase();
+            const ms = m.name.toLowerCase().includes(searchQuery) || (m.member_id && m.member_id.toLowerCase().includes(searchQuery));
+            return mf && ms;
+        }).forEach(member => {
+            const row = document.createElement('tr');
+            row.className = "hover:bg-white/[0.02] border-b border-gray-800 transition";
+            const isFull = member.fee >= settings.baseFee;
+            
+            row.innerHTML = `
+                <td class="py-4"><div class="text-white">${member.name}</div><div class="text-[10px] text-gray-500">${member.member_id || ''}</div></td>
+                <td class="py-4"><span class="px-2 py-1 rounded-md text-[10px] font-bold ${getStatusStyle(member.calculatedStatus)}">${member.calculatedStatus}</span></td>
+                <td class="py-4 text-white text-sm">RS ${member.fee}</td>
+                <td class="py-4 text-right">
+                    <div class="flex items-center justify-end space-x-3">
+                        ${isFull ? '<span class="text-emerald-500 text-[10px] font-bold">✓ DONE</span>' : `<button onclick="openPaymentModal('${member.id}', '${member.name}', ${member.fee})" class="bg-lime-400 text-black text-[10px] font-bold px-3 py-1.5 rounded-lg">COLLECT</button>`}
+                        <button onclick="deleteMember('${member.id}')" class="text-rose-500/50 hover:text-rose-500 text-[10px]"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg></button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    };
+
+    function getStatusStyle(s) {
+        if(s === 'Paid') return 'bg-emerald-500/10 text-emerald-500';
+        if(s === 'Pending') return 'bg-orange-500/10 text-orange-500';
+        return 'bg-rose-500/10 text-rose-500';
+    }
+
+    const initSettings = async () => {
+        try {
+            const snap = await getDoc(doc(db, "settings", currentUid));
+            if (snap.exists()) {
+                settings = snap.data();
+                document.getElementById('setBizName').value = settings.bizName || "";
+                document.getElementById('setBaseFee').value = settings.baseFee || 500;
+                document.getElementById('setEnableWA').checked = settings.waEnabled || false;
+                document.getElementById('setEnableEmail').checked = settings.emailEnabled || false;
+                
+                document.getElementById('displayBizName').innerText = settings.bizName || "My Gym";
+                document.getElementById('sidebarBizName').innerText = settings.bizName || "My Gym";
+            }
+        } catch (e) { console.error("Settings error:", e); }
+    };
+
+    document.getElementById('btnSaveSettings').addEventListener('click', async () => {
+        if(!currentUid) return showToast("Not logged in.", "error");
+        
+        const newSettings = {
+            bizName: document.getElementById('setBizName').value.trim(),
+            baseFee: Number(document.getElementById('setBaseFee').value),
+            waEnabled: document.getElementById('setEnableWA').checked,
+            emailEnabled: document.getElementById('setEnableEmail').checked,
+            ownerid: currentUid 
+        };
+
+        try {
+            await setDoc(doc(db, "settings", currentUid), newSettings, { merge: true });
+            showToast("Settings Updated!", "success");
+            setTimeout(() => location.reload(), 1000); 
+        } catch (e) { showToast("Error saving settings.", "error"); }
+    });
+
+    document.getElementById('memberSearch').addEventListener('input', (e) => {
+        searchQuery = e.target.value.toLowerCase();
+        window.renderTable();
+    });
+
+    checkSession();
+</script>
+    <script>
+        // --- MOBILE NAVIGATION LOGIC ---
+        window.toggleMobileMenu = () => {
+            const overlay = document.getElementById('mobile-sidebar-overlay');
+            const sidebar = document.getElementById('mobile-sidebar');
+
+            if (overlay.classList.contains('hidden')) {
+                overlay.classList.remove('hidden');
+                setTimeout(() => sidebar.classList.add('open'), 10);
+            } else {
+                sidebar.classList.remove('open');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        };
+
+        window.mobileSwitchTab = (tab) => {
+            window.switchTab(tab); // Calls your existing switchTab function
+            window.toggleMobileMenu(); // Closes the drawer
+        };
+
+        // Update this in your existing initSettings function to update mobile title too
+        const originalInitSettings = initSettings;
+        window.initSettings = async () => {
+            await originalInitSettings();
+            const bizName = document.getElementById('setBizName').value || "Gym Manager";
+            const mobileDisplay = document.getElementById('mobileBizNameDisplay');
+            if (mobileDisplay) mobileDisplay.innerText = bizName;
+        };
+    </script>
+</body>
+
+</html>
