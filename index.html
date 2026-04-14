@@ -61,6 +61,22 @@
 </head>
 
 <body class="text-gray-300 flex h-screen overflow-hidden">
+    <div id="deleteConfirmModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
+    <div class="glass-card w-full max-w-xs p-8 rounded-3xl text-center border border-rose-500/20">
+        <div class="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4z"/>
+            </svg>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Are you sure?</h3>
+        <p class="text-gray-500 text-sm mb-6">This member's data will be permanently removed.</p>
+        <div class="flex gap-3">
+            <button onclick="closeDeleteModal()" class="flex-1 p-3 bg-gray-800 text-white rounded-xl font-medium">Cancel</button>
+            <button id="btnFinalDelete" class="flex-1 p-3 bg-rose-500 text-white rounded-xl font-bold">Delete</button>
+        </div>
+    </div>
+</div>
     <div
         class="md:hidden flex items-center justify-between p-4 border-b border-gray-800 bg-[#0b0e14] w-full fixed top-0 z-40">
         <div class="flex items-center space-x-3">
@@ -679,16 +695,34 @@
         }
     });
 
-    window.deleteMember = async (id) => { 
-        if(confirm("Delete member?")) {
-            try {
-                await deleteDoc(doc(db, "members", id)); 
-                showToast("Member deleted.", "info");
-            } catch(e) {
-                showToast("Delete failed.", "error");
-            }
-        }
-    };
+   // --- CUSTOM DELETE SYSTEM ---
+let memberToDeleteId = null;
+
+window.deleteMember = (id) => {
+    memberToDeleteId = id;
+    document.getElementById('deleteConfirmModal').classList.remove('hidden');
+};
+
+window.closeDeleteModal = () => {
+    document.getElementById('deleteConfirmModal').classList.add('hidden');
+    memberToDeleteId = null;
+};
+
+// Handle the actual deletion
+document.getElementById('btnFinalDelete').addEventListener('click', async () => {
+    if (!memberToDeleteId) return;
+
+    try {
+        const id = memberToDeleteId;
+        closeDeleteModal(); // Hide modal immediately for better UX
+        
+        await deleteDoc(doc(db, "members", id)); 
+        showToast("Member removed from system.", "info");
+    } catch (e) {
+        console.error(e);
+        showToast("Error: Delete failed.", "error");
+    }
+});
 
     // --- 5. DATA FETCHING & RENDERING ---
     function startMemberListener() {
